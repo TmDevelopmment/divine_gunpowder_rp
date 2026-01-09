@@ -144,11 +144,11 @@ RegisterNetEvent('chem:updateLoadedTypes')
 AddEventHandler('chem:updateLoadedTypes', function(data)
     loadedTypes = data or loadedTypes
 
-    print('[CHEM DEBUG] client loadedTypes = A:',
+    if Config.Debug then print('[CHEM DEBUG] client loadedTypes = A:',
         loadedTypes.barrel_a,
         'B:', loadedTypes.barrel_b,
         'C:', loadedTypes.barrel_c
-    )
+    ) end
 
     refreshDeliveryBlips()
     setNextWaypoint()
@@ -183,27 +183,27 @@ end)
 
 RegisterNetEvent('chem:sync:removeTruckBarrel')
 AddEventHandler('chem:sync:removeTruckBarrel', function(slot)
-    print('[CHEM DEBUG] CLIENT removeTruckBarrel | slot:', slot)
+    if Config.Debug then print('[CHEM DEBUG] CLIENT removeTruckBarrel | slot:', slot) end
 
     if not slot then
-        print('[CHEM DEBUG]  -> slot is NIL, cannot delete')
+        if Config.Debug then print('[CHEM DEBUG]  -> slot is NIL, cannot delete') end
         return
     end
 
     if not TruckBarrels then
-        print('[CHEM DEBUG]  -> TruckBarrels table missing')
+        if Config.Debug then print('[CHEM DEBUG]  -> TruckBarrels table missing') end
         return
     end
 
     local obj = TruckBarrels[slot]
 
-    print('[CHEM DEBUG]  -> object at slot:', obj)
+    if Config.Debug then print('[CHEM DEBUG]  -> object at slot:', obj) end
 
     if obj and DoesEntityExist(obj) then
-        print('[CHEM DEBUG]  -> deleting object now')
+        if Config.Debug then print('[CHEM DEBUG]  -> deleting object now') end
         DeleteObject(obj)
     else
-        print('[CHEM DEBUG]  -> object does NOT exist')
+        if Config.Debug then print('[CHEM DEBUG]  -> object does NOT exist') end
     end
 
     TruckBarrels[slot] = nil
@@ -211,7 +211,7 @@ end)
 
 RegisterNetEvent("chem:request:showParkingLocation")
 AddEventHandler("chem:request:showParkingLocation", function()
-    print("[CHEM] Showing truck park zone")
+    if Config.Debug then print("[CHEM] Showing truck park zone") end
 
     if truckParkZone then return end
 

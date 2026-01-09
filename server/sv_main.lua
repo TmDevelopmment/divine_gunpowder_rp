@@ -5,7 +5,7 @@ local runs = {}
 local function createPlate()
     local prefix = 'CHEM'
     local plate = ('%s%04d'):format(prefix, math.random(0, 9999))
-    print('[DEBUG] Generated plate:', plate)
+    if Config.Debug then print('[DEBUG] Generated plate:', plate) end
     return plate
 end
 
@@ -41,7 +41,7 @@ local function syncLoadedTypes(src)
 end
 
 local function clearMission(src, reason)
-    print(("[CHEM DEBUG] CLEARING MISSION FOR %s | reason: %s"):format(src, reason or "unknown"))
+    if Config.Debug then print(("[CHEM DEBUG] CLEARING MISSION FOR %s | reason: %s"):format(src, reason or "unknown")) end
     activeMissions[src] = nil
 end
 
@@ -58,11 +58,11 @@ function tryFinishMission(src)
 
     local worldEmpty = not missionBarrelsRemaining(src)
 
-    print('[CHEM DEBUG] tryFinishMission | truckEmpty =',
-        truckEmpty, '| worldEmpty =', worldEmpty)
+    if Config.Debug then print('[CHEM DEBUG] tryFinishMission | truckEmpty =',
+        truckEmpty, '| worldEmpty =', worldEmpty) end
 
     if truckEmpty and worldEmpty then
-        print('[CHEM DEBUG] FINISH STAGE 1 — deliveries done (WAIT FOR PARK)')
+        if Config.Debug then print('[CHEM DEBUG] FINISH STAGE 1 — deliveries done (WAIT FOR PARK)') end
 
         TriggerClientEvent('chem:sync:endDelivery', src)
 
@@ -77,13 +77,22 @@ end
 RegisterNetEvent('chem:request:startMission')
 AddEventHandler('chem:request:startMission', function()
     local src = source
+    if Config.Debug then print('[CHEM DEBUG] startMission requested by src:', src) end
     if activeMissions[src] then
         Notify(src, 'You already have an active job.', 'error')
         return
     end
-    if cooldowns[src] and cooldowns[src].mission and GetGameTimer() - cooldowns[src].mission < Config.Cooldowns.mission then
-        Notify(src, 'Mission cooldown active.', 'error')
-        return
+    if cooldowns[src] and cooldowns[src].mission then
+        local elapsed = GetGameTimer() - cooldowns[src].mission
+
+        if elapsed < Config.Cooldowns.mission then
+            local remaining = Config.Cooldowns.mission - elapsed
+            local hours = math.floor(remaining / 3600000)
+            local minutes = math.floor((remaining % 3600000) / 60000)
+
+            Notify(src, 'Mission cooldown active. Wait '..hours..'h '..minutes..'m.', 'error')
+            return
+        end
     end
 
     local playerCoords = GetEntityCoords(GetPlayerPed(src))
@@ -124,6 +133,7 @@ AddEventHandler('chem:request:startMission', function()
     cooldowns[src] = cooldowns[src] or {}
     cooldowns[src].mission = GetGameTimer()
 
+    if Config.Debug then print('[CHEM DEBUG] Mission started for src:', src, 'runId:', runId) end
     Notify(src, 'Mission started! Collect barrels and load them into your truck.', 'success')
     TriggerClientEvent('chem:spawnMissionBarrel', src, Config.LabLocation)
     TriggerClientEvent('chem:sync:startMission', src, runs[runId].dropoff)
@@ -132,13 +142,13 @@ end)
 RegisterNetEvent("chem:request:finishAtPark")
 AddEventHandler("chem:request:finishAtPark", function()
 
-    print('[CHEM DEBUG] finishAtPark')
+    if Config.Debug then print('[CHEM DEBUG] finishAtPark') end
 
     local src = source
     local mission = activeMissions[src]
 
     if not mission then
-        print("[CHEM DEBUG] STOP — no mission at finish")
+        if Config.Debug then print("[CHEM DEBUG] STOP — no mission at finish") end
         return
     end
 
@@ -148,19 +158,19 @@ AddEventHandler("chem:request:finishAtPark", function()
     local lt = mission.loadedTypes
 
     if lt.barrel_a > 0 or lt.barrel_b > 0 or lt.barrel_c > 0 then
-        print("[CHEM DEBUG] STOP — truck still has barrels")
+        if Config.Debug then print("[CHEM DEBUG] STOP — truck still has barrels") end
         return Notify(src, "You still have barrels in the truck!", "error")
     end
 
     if missionBarrelsRemaining(src) then
-        print("[CHEM DEBUG] STOP — barrels still in world")
+        if Config.Debug then print("[CHEM DEBUG] STOP — barrels still in world") end
         return Notify(src, "Finish all barrels before returning.", "error")
     end
 
-    print("[CHEM DEBUG] PASS — finishing mission and deleting truck")
+    if Config.Debug then print("[CHEM DEBUG] PASS — finishing mission and deleting truck") end
 
     TriggerClientEvent("chem:sync:endMission", src)
-    print("[CHEM DEBUG] -> sent endMission to client:", src)
+    if Config.Debug then print("[CHEM DEBUG] -> sent endMission to client:", src) end
 
     clearMission(src, "park finished")
 
@@ -170,6 +180,7 @@ end)
 RegisterNetEvent('chem:request:pickupBarrel')
 AddEventHandler('chem:request:pickupBarrel', function(id)
     local src = source
+    if Config.Debug then print('[CHEM DEBUG] pickupBarrel requested by src:', src, 'id:', id) end
     if not activeMissions[src] then
         Notify(src, 'You need to start the mission first.', 'error')
         return
@@ -185,13 +196,14 @@ AddEventHandler('chem:request:pickupBarrel', function(id)
 
     cooldowns[src].pickup = GetGameTimer()
     SetBarrelState(id, 'picked', src)
+    if Config.Debug then print('[CHEM DEBUG] Barrel picked up: id', id, 'by src:', src) end
     Notify(src, 'Picked up barrel. Load it into your truck.', 'success')
 end)
 
 RegisterNetEvent('chem:request:loadBarrel')
 AddEventHandler('chem:request:loadBarrel', function(vehicleNetId)
     local src = source
-    print('[DEBUG] chem:request:loadBarrel triggered by src:', src, 'vehicleNetId:', vehicleNetId)
+    if Config.Debug then print('[DEBUG] chem:request:loadBarrel triggered by src:', src, 'vehicleNetId:', vehicleNetId) end
 
     if not activeMissions[src] then
         Notify(src, 'You need to start the mission first.', 'error')
@@ -249,7 +261,7 @@ AddEventHandler('chem:request:loadBarrel', function(vehicleNetId)
 
     SetBarrelState(carriedId, 'loaded', nil, vehicleNetId, slot)
     barrelStates[carriedId].truckSlot = slot
-    print('[DEBUG] Barrel id:', carriedId, 'loaded into truck slot:', slot)
+    if Config.Debug then print('[DEBUG] Barrel id:', carriedId, 'loaded into truck slot:', slot) end
     cooldowns[src].load = GetGameTimer()
 
     TriggerClientEvent('chem:sync:openTruckDoors', -1, vehicleNetId)
@@ -268,6 +280,7 @@ end)
 RegisterNetEvent('chem:request:deliver')
 AddEventHandler('chem:request:deliver', function()
     local src = source
+    if Config.Debug then print('[CHEM DEBUG] deliver requested by src:', src) end
 
     if not activeMissions[src] then
         return Notify(src, 'You need to start the mission first.', 'error')
@@ -315,6 +328,7 @@ AddEventHandler('chem:request:deliver', function()
     ResetBarrelsForPlayer(src)
     cooldowns[src].deliver = GetGameTimer()
 
+    if Config.Debug then print('[CHEM DEBUG] Delivered', have, 'barrels of', barrelType, 'for', reward) end
     Notify(src,
         ('Delivered %d barrels → received %d x %s'):format(have, have, reward),
         'success'
@@ -329,15 +343,15 @@ AddEventHandler('chem:request:takeFromTruck', function(barrelType)
     local src     = source
     local mission = activeMissions[src]
 
-    print('[CHEM DEBUG] takeFromTruck triggered | src:', src, '| type:', barrelType)
+    if Config.Debug then print('[CHEM DEBUG] takeFromTruck triggered | src:', src, '| type:', barrelType) end
 
     if not mission then
-        print('[CHEM DEBUG]  -> NO mission for player')
+        if Config.Debug then print('[CHEM DEBUG]  -> NO mission for player') end
         return
     end
 
     if mission.loadedTypes[barrelType] <= 0 then
-        print('[CHEM DEBUG]  -> mission.loadedTypes shows ZERO for this type')
+        if Config.Debug then print('[CHEM DEBUG]  -> mission.loadedTypes shows ZERO for this type') end
         return Notify(src, 'No barrels of this type left in the truck.', 'error')
     end
 
@@ -352,10 +366,10 @@ AddEventHandler('chem:request:takeFromTruck', function(barrelType)
     end
 
 
-    print('[CHEM DEBUG]  -> found barrelId:', barrelId, '| slot:', slot)
+    if Config.Debug then print('[CHEM DEBUG]  -> found barrelId:', barrelId, '| slot:', slot) end
 
     if not barrelId or not slot then
-        print('[CHEM DEBUG]  -> FAILED to find a matching barrel slot!')
+        if Config.Debug then print('[CHEM DEBUG]  -> FAILED to find a matching barrel slot!') end
         return Notify(src, 'Could not find that barrel slot.', 'error')
     end
 
@@ -363,20 +377,20 @@ AddEventHandler('chem:request:takeFromTruck', function(barrelType)
     mission.barrelsLoaded = mission.barrelsLoaded - 1
     syncLoadedTypes(src)
 
-    print(string.format(
+    if Config.Debug then print(string.format(
         '[CHEM DEBUG]  -> updated counts | A:%d B:%d C:%d | total:%d',
         mission.loadedTypes.barrel_a,
         mission.loadedTypes.barrel_b,
         mission.loadedTypes.barrel_c,
         mission.barrelsLoaded
-    ))
+    )) end
 
-    print('[CHEM DEBUG]  -> telling client to remove slot:', slot)
+    if Config.Debug then print('[CHEM DEBUG]  -> telling client to remove slot:', slot) end
     TriggerClientEvent('chem:sync:removeTruckBarrel', src, slot)
 
     TriggerClientEvent('chem:sync:carryBarrel', src, barrelType)
 
-    print('[CHEM DEBUG]  -> converting barrel to "carried" and resetting world state')
+    if Config.Debug then print('[CHEM DEBUG]  -> converting barrel to "carried" and resetting world state') end
 
     SetBarrelState(barrelId, 'reset')
 end)
@@ -388,6 +402,7 @@ AddEventHandler('chem:request:deliverCarry', function(barrelType)
     local src = source
     local mission = activeMissions[src]
     if not mission then return end
+    if Config.Debug then print('[CHEM DEBUG] deliverCarry requested by src:', src, 'type:', barrelType) end
 
     local playerCoords = GetEntityCoords(GetPlayerPed(src))
     local zoneName = getDeliveryTypeAtCoords(playerCoords)
@@ -410,6 +425,7 @@ AddEventHandler('chem:request:deliverCarry', function(barrelType)
     local reward = Config.DeliveryZone[zoneName].reward
     GiveItem(src, reward, 1)
 
+    if Config.Debug then print('[CHEM DEBUG] Delivered carried barrel of', barrelType, 'for', reward) end
     Notify(src, 'Delivered barrel successfully.', 'success')
 
     tryFinishMission(src)
@@ -418,6 +434,7 @@ end)
 RegisterNetEvent('chem:request:exchange')
 AddEventHandler('chem:request:exchange', function()
     local src = source
+    if Config.Debug then print('[CHEM DEBUG] exchange requested by src:', src) end
     if cooldowns[src] and cooldowns[src].exchange and GetGameTimer() - cooldowns[src].exchange < Config.Cooldowns.exchange then
         return
     end
@@ -448,12 +465,14 @@ AddEventHandler('chem:request:exchange', function()
     GiveItem(src, Config.Items.proc_c, 1)
 
     cooldowns[src].exchange = GetGameTimer()
+    if Config.Debug then print('[CHEM DEBUG] Exchanged chemicals for processed materials for src:', src) end
     Notify(src, 'Exchanged chemicals for processed materials.', 'success')
 end)
 
 RegisterNetEvent('chem:request:mixGunpowder')
 AddEventHandler('chem:request:mixGunpowder', function()
     local src = source
+    if Config.Debug then print('[CHEM DEBUG] mixGunpowder requested by src:', src) end
 
     if cooldowns[src] and cooldowns[src].mix and GetGameTimer() - cooldowns[src].mix < Config.Cooldowns.mix then
         return
@@ -483,6 +502,7 @@ AddEventHandler('chem:request:mixGunpowder', function()
 
     cooldowns[src].mix = GetGameTimer()
     TriggerClientEvent('chem:sync:mixingProgress', src)
+    if Config.Debug then print('[CHEM DEBUG] Started mixing gunpowder for src:', src) end
     Notify(src, 'Mixed ' .. amount .. ' gunpowder!', 'success')
 end)
 
@@ -496,6 +516,7 @@ AddEventHandler('chem:mix:complete', function()
 
     GiveItem(src, Config.Items.gunpowder, amount)
 
+    if Config.Debug then print('[CHEM DEBUG] Mixing complete, gave', amount, 'gunpowder to src:', src) end
     Notify(src, 'You finished mixing and received ' .. amount .. ' gunpowder!', 'success')
 end)
 
@@ -529,7 +550,7 @@ end)
 
 local function tryGiveVehicleKeys(src, plate)
     if type(plate) ~= 'string' or plate == '' then return end
-    print(('[chem_gunpowder] giving keys %s -> %s'):format(plate, src))
+    if Config.Debug then print(('[chem_gunpowder] giving keys %s -> %s'):format(plate, src)) end
 
     if GetResourceState('qbx_vehiclekeys') == 'started' then
         TriggerClientEvent('qbx_vehiclekeys:client:GiveKeys', src, plate)
@@ -556,6 +577,6 @@ end)
 
 
 RegisterCommand("chemtryfinish", function(source)
-    print("[CHEM TEST] Running tryFinishMission()")
+    if Config.Debug then print("[CHEM TEST] Running tryFinishMission()") end
     tryFinishMission(source)
 end, false)

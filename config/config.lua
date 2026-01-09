@@ -1,6 +1,8 @@
 Config = {
 
-    Debug = false,
+    Debug = true,
+
+    DeliveryCooldown = 21600000, -- 6 hours
 
     StartBot = {
         model   = 's_m_m_chemsec_01',
