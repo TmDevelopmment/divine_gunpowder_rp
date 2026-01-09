@@ -1,12 +1,8 @@
--- Inventory handling - centralized here
--- Auto-detect frameworks
-
 local ox_inventory = GetResourceState('ox_inventory') == 'started'
 local qb_core = GetResourceState('qb-core') == 'started'
 local qbx_core = GetResourceState('qbx-core') == 'started'
 local esx = GetResourceState('es_extended') == 'started'
 
--- Give item to player
 function GiveItem(src, item, amount)
     if ox_inventory then
         return exports.ox_inventory:AddItem(src, item, amount)
@@ -24,14 +20,11 @@ function GiveItem(src, item, amount)
             return true
         end
     else
-        -- Fallback: debug print
         print(('FALLBACK: Give %s x%d to player %d'):format(item, amount, src))
-        -- TODO: Wire your custom inventory API here
         return false
     end
 end
 
--- Remove item from player
 function RemoveItem(src, item, amount)
     if ox_inventory then
         return exports.ox_inventory:RemoveItem(src, item, amount)
@@ -56,7 +49,6 @@ function RemoveItem(src, item, amount)
     end
 end
 
--- Check if player has items
 function HasItems(src, requiredItems)
     if ox_inventory then
         for item, count in pairs(requiredItems) do
@@ -93,7 +85,6 @@ function HasItems(src, requiredItems)
     end
 end
 
--- Notify player
 function Notify(src, message, type)
     if GetResourceState('ox_lib') == 'started' then
         TriggerClientEvent('ox_lib:notify', src, { title = 'Chemical Job', description = message, type = type or 'info' })
@@ -106,7 +97,6 @@ function Notify(src, message, type)
     end
 end
 
--- Get QBCore/ESX objects if available
 if qb_core or qbx_core then
     QBCore = exports['qb-core']:GetCoreObject()
 elseif esx then

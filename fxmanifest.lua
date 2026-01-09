@@ -22,5 +22,4 @@ server_scripts {
 dependencies {
     'ox_lib',
     'ox_target'
-    -- Auto-detects frameworks: ESX, QBCore, QBX, ox_inventory, ox_lib
 }

@@ -1,8 +1,7 @@
 Config = {
 
-    -- =========================
-    -- START BOT (MISSION START)
-    -- =========================
+    Debug = false,
+
     StartBot = {
         model   = 's_m_m_chemsec_01',
         coords  = vector3(-1353.827, -2707.127, 13.945),
@@ -10,9 +9,6 @@ Config = {
         prompt  = "~INPUT_CONTEXT~ Start Chemical Job"
     },
 
-    -- =========================
-    -- EXCHANGE BOT (PROCESS)
-    -- =========================
     ExchangeBot = {
         model   = 's_m_m_chemsec_01',
         coords  = vector3(-1334.445, -2716.969, 13.945),
@@ -20,16 +16,12 @@ Config = {
         prompt  = "~INPUT_CONTEXT~ Exchange Chemicals"
     },
 
-    -- chem → processed map
     ExchangeShop = {
         chem_a = 'proc_a',
         chem_b = 'proc_b',
         chem_c = 'proc_c'
     },
 
-    -- =========================
-    -- BARREL SPAWNS
-    -- =========================
     BarrelLocations = {
 
         barrel_a = {
@@ -96,14 +88,12 @@ Config = {
         }
     },
 
-    -- TRUCK
     TruckSpawn = {
         model   = 'benson',
         coords  = vector3(-1362.12, -2703.68, 13.94),
         heading = 90.0
     },
 
-    -- DELIVERY ZONES
     DeliveryZone = {
 
         barrel_a_delivery = {

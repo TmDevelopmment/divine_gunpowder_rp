@@ -1,7 +1,6 @@
--- Delivery zone
 local dropoffCoords = nil
 local truckParkZone = nil
-local selectedDropoffs = {} -- zoneName -> vector3
+local selectedDropoffs = {}
 loadedTypes = { barrel_a = 0, barrel_b = 0, barrel_c = 0 }
 local deliveryBlips = {}
 local showMarker = false
@@ -77,7 +76,6 @@ function setNextWaypoint()
     end
 end
 
--- Helper
 function Draw3DText(x, y, z, text)
     SetDrawOrigin(x, y, z, 0)
     SetTextScale(0.35, 0.35)
@@ -113,12 +111,10 @@ function Draw3DTextModern(x, y, z, text)
     end
 end
 
--- Set dropoff
 AddEventHandler('chem:setDropoff', function(coords)
     dropoffCoords = coords
 end)
 
--- Clear dropoff
 AddEventHandler('chem:clearDropoff', function()
     dropoffCoords = nil
 end)
@@ -234,7 +230,7 @@ AddEventHandler("chem:request:showParkingLocation", function()
 
         inside   = function()
             showMarker = true
-            glowActive = false -- default off
+            glowActive = false
 
 
             if not missionTruck or not DoesEntityExist(missionTruck) then
@@ -254,7 +250,6 @@ AddEventHandler("chem:request:showParkingLocation", function()
                 })
 
                 if IsControlJustPressed(0, 38) then
-                    -- TaskStartScenarioInPlace(ped, "WORLD_HUMAN_CLIPBOARD", 0, true)
 
                     local success = lib.progressCircle({
                         duration = 5000,
@@ -433,56 +428,3 @@ CreateThread(function()
         end
     end
 end)
-
-
--- spawn mission truck
-RegisterCommand("chemspawntruck", function()
-    if not Config.TruckSpawn.model then
-        print("[CHEM TEST] No Config.TruckModel set!")
-        return
-    end
-
-    local model = joaat(Config.TruckSpawn.model)
-
-    RequestModel(model)
-    while not HasModelLoaded(model) do
-        Wait(0)
-    end
-
-    local coords = Config.TruckPark
-    local heading = Config.TruckParkHeading or 0.0
-
-    if missionTruck and DoesEntityExist(missionTruck) then
-        DeleteVehicle(missionTruck)
-    end
-
-    missionTruck = CreateVehicle(model, coords.x, coords.y, coords.z, heading, true, false)
-    SetVehicleOnGroundProperly(missionTruck)
-    SetEntityAsMissionEntity(missionTruck, true, true)
-
-    local ped = PlayerPedId()
-    TaskWarpPedIntoVehicle(ped, missionTruck, -1)
-
-    print("[CHEM TEST] Spawned mission truck")
-end, false)
-
-
--- show the parking zone manually
-RegisterCommand("chemshowpark", function()
-    TriggerEvent("chem:request:showParkingLocation")
-    print("[CHEM TEST] Showing park zone")
-end, false)
-
-
--- simulate pressing E to return truck
-RegisterCommand("chemfinish", function()
-    TriggerServerEvent("chem:request:finishAtPark")
-    print("[CHEM TEST] Finish at park requested")
-end, false)
-
-
--- force sync end (client)
-RegisterCommand("chemend", function()
-    TriggerEvent("chem:sync:endMission")
-    print("[CHEM TEST] Forced end mission")
-end, false)

@@ -3,9 +3,7 @@ local startBlip, exchangeBlip
 missionTruck = nil
 local dropoffCoords = nil
 
--- Create NPCs
 Citizen.CreateThread(function()
-    -- Start Bot
     RequestModel(Config.StartBot.model)
     while not HasModelLoaded(Config.StartBot.model) do
         Wait(100)
@@ -16,7 +14,6 @@ Citizen.CreateThread(function()
     SetEntityInvincible(startBot, true)
     SetBlockingOfNonTemporaryEvents(startBot, true)
 
-    -- Exchange Bot
     RequestModel(Config.ExchangeBot.model)
     while not HasModelLoaded(Config.ExchangeBot.model) do
         Wait(100)
@@ -27,7 +24,6 @@ Citizen.CreateThread(function()
     SetEntityInvincible(exchangeBot, true)
     SetBlockingOfNonTemporaryEvents(exchangeBot, true)
 
-    -- Add ox_target if available
     if IsOxTargetAvailable() then
         exports.ox_target:addLocalEntity(startBot, {
             {
@@ -51,9 +47,8 @@ Citizen.CreateThread(function()
         })
     end
 
-    -- Blips
     startBlip = AddBlipForCoord(Config.StartBot.coords.x, Config.StartBot.coords.y, Config.StartBot.coords.z)
-    SetBlipSprite(startBlip, 280) -- Chemical plant blip
+    SetBlipSprite(startBlip, 280)
     SetBlipColour(startBlip, 1)
     SetBlipScale(startBlip, 0.8)
     SetBlipAsShortRange(startBlip, true)
@@ -71,27 +66,24 @@ Citizen.CreateThread(function()
     EndTextCommandSetBlipName(exchangeBlip)
 end)
 
--- Interaction threads
 Citizen.CreateThread(function()
     while true do
         Wait(0)
         local playerPed = PlayerPedId()
         local playerCoords = GetEntityCoords(playerPed)
 
-        -- Start Bot
         if Vdist(playerCoords.x, playerCoords.y, playerCoords.z, Config.StartBot.coords.x, Config.StartBot.coords.y, Config.StartBot.coords.z) < 3.0 then
             if not IsOxTargetAvailable() then
                 DrawMarker(1, Config.StartBot.coords.x, Config.StartBot.coords.y, Config.StartBot.coords.z - 1.0, 0.0,
                     0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 255, 255, 255, 100, false, true, 2, false, nil, nil, false)
                 Draw3DText(Config.StartBot.coords.x, Config.StartBot.coords.y, Config.StartBot.coords.z + 1.0,
                     Config.StartBot.prompt)
-                if IsControlJustPressed(0, 38) then -- E
+                if IsControlJustPressed(0, 38) then
                     TriggerServerEvent('chem:request:startMission')
                 end
             end
         end
 
-        -- Exchange Bot
         if Vdist(playerCoords.x, playerCoords.y, playerCoords.z, Config.ExchangeBot.coords.x, Config.ExchangeBot.coords.y, Config.ExchangeBot.coords.z) < 3.0 then
             if not IsOxTargetAvailable() then
                 DrawMarker(1, Config.ExchangeBot.coords.x, Config.ExchangeBot.coords.y, Config.ExchangeBot.coords.z - 1.0,
@@ -99,7 +91,7 @@ Citizen.CreateThread(function()
                     false)
                 Draw3DText(Config.ExchangeBot.coords.x, Config.ExchangeBot.coords.y, Config.ExchangeBot.coords.z + 1.0,
                     Config.ExchangeBot.prompt)
-                if IsControlJustPressed(0, 38) then -- E
+                if IsControlJustPressed(0, 38) then
                     TriggerServerEvent('chem:request:exchange')
                 end
             end
@@ -107,7 +99,6 @@ Citizen.CreateThread(function()
     end
 end)
 
--- Helper functions
 function IsOxTargetAvailable()
     return GetResourceState('ox_target') == 'started'
 end
@@ -123,10 +114,8 @@ function Draw3DText(x, y, z, text)
     ClearDrawOrigin()
 end
 
--- Mission start: spawn truck
 RegisterNetEvent('chem:sync:startMission')
 AddEventHandler('chem:sync:startMission', function()
-    -- choose one random location for each delivery type
     selectedDropoffs = {}
 
     for zoneName, zone in pairs(Config.DeliveryZone) do
@@ -188,7 +177,6 @@ AddEventHandler('chem:sync:startMission', function()
                     onSelect = function()
                         local opts = {}
 
-                        -- USE THE REAL synced variable
                         if loadedTypes then
                             if loadedTypes.barrel_a and loadedTypes.barrel_a > 0 then
                                 opts[#opts + 1] = {
@@ -218,7 +206,6 @@ AddEventHandler('chem:sync:startMission', function()
                             end
                         end
 
-                        -- none → message
                         if #opts == 0 then
                             if GetResourceState('ox_lib') == 'started' and lib and lib.notify then
                                 lib.notify({
@@ -270,12 +257,10 @@ AddEventHandler('chem:sync:endDelivery', function()
     if Config.TruckPark then
         SetNewWaypoint(Config.TruckPark.x, Config.TruckPark.y)
     end
-    -- create parking zone only now
     TriggerEvent('chem:request:showParkingLocation')
 end)
 
 
--- Mission end: delete truck
 RegisterNetEvent('chem:sync:endMission')
 AddEventHandler('chem:sync:endMission', function()
 

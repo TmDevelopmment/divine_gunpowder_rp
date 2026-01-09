@@ -1,4 +1,4 @@
-local barrels = {} -- id -> prop
+local barrels = {}
 carryingBarrel = false
 carriedBarrelId = nil
 
@@ -6,7 +6,6 @@ local function IsOxTargetAvailable()
     return GetResourceState('ox_target') == 'started'
 end
 
--- Spawn barrels
 Citizen.CreateThread(function()
     local barrelTypes = {'barrel_a', 'barrel_b', 'barrel_c'}
     barrels = {}
@@ -14,7 +13,6 @@ Citizen.CreateThread(function()
     for i, typeKey in ipairs(barrelTypes) do
         local typeData = Config.BarrelLocations[typeKey]
 
-        -- auto-detect a/b/c/d...
         local subKeys = {}
         for key,_ in pairs(typeData.locations) do
             subKeys[#subKeys+1] = key
@@ -38,11 +36,9 @@ Citizen.CreateThread(function()
 
             PlaceObjectOnGroundProperly(prop)
 
-            -- unique id
             local barrelId = (i-1)*3 + j
             barrels[barrelId] = prop
 
-            -- 🔥 OX TARGET
             if IsOxTargetAvailable() then
                 exports.ox_target:addLocalEntity(prop, {{
                     name = 'pickup_barrel_' .. barrelId,
@@ -58,27 +54,22 @@ Citizen.CreateThread(function()
     end
 end)
 
--- Sync barrel states
 RegisterNetEvent('chem:sync:barrelState')
 AddEventHandler('chem:sync:barrelState', function(id, state, playerId, vehicleNetId, slot)
     if state == 'picked' then
         if playerId == GetPlayerServerId(PlayerId()) then
-            -- Attach to self
             AttachBarrelToPlayer(barrels[id])
             carryingBarrel = true
             carriedBarrelId = id
-            -- Remove target if ox_target
             if IsOxTargetAvailable() then
                 exports.ox_target:removeLocalEntity(barrels[id])
             end
         else
-            -- Hide for others
             if DoesEntityExist(barrels[id]) then
                 SetEntityVisible(barrels[id], false, false)
             end
         end
     elseif state == 'loaded' then
-        -- Attach to truck
         print('[DEBUG] Attaching barrel id:', id, 'to vehicleNetId:', vehicleNetId, 'slot:', slot)
         local vehicle = NetToVeh(vehicleNetId)
         if DoesEntityExist(vehicle) then
@@ -91,7 +82,6 @@ AddEventHandler('chem:sync:barrelState', function(id, state, playerId, vehicleNe
         carriedBarrelId = nil
         ClearPedTasks(PlayerPedId())
     elseif state == 'reset' then
-        -- Reset barrel
         if DoesEntityExist(barrels[id]) then
             SetEntityVisible(barrels[id], true, false)
             DetachEntity(barrels[id], true, true)
@@ -102,7 +92,6 @@ AddEventHandler('chem:sync:barrelState', function(id, state, playerId, vehicleNe
             carriedBarrelId = nil
             ClearPedTasks(PlayerPedId())
         end
-        -- Add target back if ox_target
         if IsOxTargetAvailable() then
             exports.ox_target:addLocalEntity(barrels[id], {
                 {
@@ -118,7 +107,6 @@ AddEventHandler('chem:sync:barrelState', function(id, state, playerId, vehicleNe
     end
 end)
 
--- Attach barrel to player
 function AttachBarrelToPlayer(prop)
     RequestAnimDict(Config.AnimDicts.carry)
     while not HasAnimDictLoaded(Config.AnimDicts.carry) do
@@ -128,7 +116,6 @@ function AttachBarrelToPlayer(prop)
     AttachEntityToEntity(prop, PlayerPedId(), GetPedBoneIndex(PlayerPedId(), 60309), 0.0, 0.3, 0.0, 0.0, 0.0, 90.0, true, true, false, true, 1, true)
 end
 
--- Attach barrel to truck
 function AttachBarrelToTruck(prop, vehicle, slot)
     print('[DEBUG] AttachBarrelToTruck called for prop:', prop, 'vehicle:', vehicle, 'slot:', slot)
     local slotData = Config.TruckSlots[slot]
@@ -141,7 +128,6 @@ function AttachBarrelToTruck(prop, vehicle, slot)
     end
 end
 
--- Helper
 function Draw3DText(x, y, z, text)
     SetDrawOrigin(x, y, z, 0)
     SetTextScale(0.35, 0.35)

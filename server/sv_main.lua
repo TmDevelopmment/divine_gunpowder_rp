@@ -1,11 +1,9 @@
--- Main mission logic
-local activeMissions = {} -- src -> { startTime, barrelsLoaded = 0 }
-local cooldowns = {}      -- src -> { action = time }
-local runs = {}           -- runId -> run data
+local activeMissions = {}
+local cooldowns = {}
+local runs = {}
 
--- Helpers
 local function createPlate()
-    local prefix = 'CHEM' -- or from config if added
+    local prefix = 'CHEM'
     local plate = ('%s%04d'):format(prefix, math.random(0, 9999))
     print('[DEBUG] Generated plate:', plate)
     return plate
@@ -24,12 +22,10 @@ end
 
 local function missionBarrelsRemaining(src)
     for id, data in pairs(barrelStates) do
-        -- barrel exists in world
         if data.state == 'spawned' then
             return true
         end
 
-        -- player still carrying one
         if data.state == 'picked' and data.player == src then
             return true
         end
@@ -65,10 +61,6 @@ function tryFinishMission(src)
     print('[CHEM DEBUG] tryFinishMission | truckEmpty =',
         truckEmpty, '| worldEmpty =', worldEmpty)
 
-    ----------------------------------------------------
-    -- Deliveries complete → return the truck
-    -- (mission stays ACTIVE until parking)
-    ----------------------------------------------------
     if truckEmpty and worldEmpty then
         print('[CHEM DEBUG] FINISH STAGE 1 — deliveries done (WAIT FOR PARK)')
 
@@ -82,7 +74,6 @@ function tryFinishMission(src)
     end
 end
 
--- Start mission
 RegisterNetEvent('chem:request:startMission')
 AddEventHandler('chem:request:startMission', function()
     local src = source
@@ -101,11 +92,9 @@ AddEventHandler('chem:request:startMission', function()
         return
     end
 
-    -- generate run id FIRST
     local runId = tostring(os.time()) .. ':' .. tostring(src)
     local participants = { [src] = true }
 
-    -- Choose random delivery location
     local allDeliveryLocs = {}
     for _, zoneData in pairs(Config.DeliveryZone) do
         for _, loc in ipairs(zoneData.locations) do
@@ -170,7 +159,6 @@ AddEventHandler("chem:request:finishAtPark", function()
 
     print("[CHEM DEBUG] PASS — finishing mission and deleting truck")
 
-    -- client cleans truck + zones
     TriggerClientEvent("chem:sync:endMission", src)
     print("[CHEM DEBUG] -> sent endMission to client:", src)
 
@@ -179,7 +167,6 @@ AddEventHandler("chem:request:finishAtPark", function()
     Notify(src, "Truck returned — mission complete!", "success")
 end)
 
--- Pickup barrel
 RegisterNetEvent('chem:request:pickupBarrel')
 AddEventHandler('chem:request:pickupBarrel', function(id)
     local src = source
@@ -201,7 +188,6 @@ AddEventHandler('chem:request:pickupBarrel', function(id)
     Notify(src, 'Picked up barrel. Load it into your truck.', 'success')
 end)
 
--- Load barrel
 RegisterNetEvent('chem:request:loadBarrel')
 AddEventHandler('chem:request:loadBarrel', function(vehicleNetId)
     local src = source
@@ -224,7 +210,6 @@ AddEventHandler('chem:request:loadBarrel', function(vehicleNetId)
         return
     end
 
-    -- Find carried barrel
     local carriedId
     for id, data in pairs(barrelStates) do
         if data.state == 'picked' and data.player == src then
@@ -263,7 +248,7 @@ AddEventHandler('chem:request:loadBarrel', function(vehicleNetId)
     local slot = activeMissions[src].barrelsLoaded
 
     SetBarrelState(carriedId, 'loaded', nil, vehicleNetId, slot)
-    barrelStates[carriedId].truckSlot = slot -- 🔹 remember slot
+    barrelStates[carriedId].truckSlot = slot
     print('[DEBUG] Barrel id:', carriedId, 'loaded into truck slot:', slot)
     cooldowns[src].load = GetGameTimer()
 
@@ -280,7 +265,6 @@ AddEventHandler('chem:request:loadBarrel', function(vehicleNetId)
         activeMissions[src].barrelsLoaded .. '/' .. Config.MaxBarrels .. ')', 'success')
 end)
 
--- Deliver
 RegisterNetEvent('chem:request:deliver')
 AddEventHandler('chem:request:deliver', function()
     local src = source
@@ -336,12 +320,10 @@ AddEventHandler('chem:request:deliver', function()
         'success'
     )
 
-    -- sync to client
     syncLoadedTypes(src)
     tryFinishMission(src)
 end)
 
--- take barrel out of truck (carry)
 RegisterNetEvent('chem:request:takeFromTruck')
 AddEventHandler('chem:request:takeFromTruck', function(barrelType)
     local src     = source
@@ -359,10 +341,8 @@ AddEventHandler('chem:request:takeFromTruck', function(barrelType)
         return Notify(src, 'No barrels of this type left in the truck.', 'error')
     end
 
-    -- find a loaded barrel with this type
     local barrelId, slot
 
-    -- find ANY loaded barrel of this type
     for id, data in pairs(barrelStates) do
         if data.state == 'loaded' and data.type == barrelType then
             barrelId = id
@@ -391,11 +371,9 @@ AddEventHandler('chem:request:takeFromTruck', function(barrelType)
         mission.barrelsLoaded
     ))
 
-    -- remove prop from truck
     print('[CHEM DEBUG]  -> telling client to remove slot:', slot)
     TriggerClientEvent('chem:sync:removeTruckBarrel', src, slot)
 
-    -- give carry
     TriggerClientEvent('chem:sync:carryBarrel', src, barrelType)
 
     print('[CHEM DEBUG]  -> converting barrel to "carried" and resetting world state')
@@ -405,7 +383,6 @@ end)
 
 
 
--- deliver only if carrying & correct drop
 RegisterNetEvent('chem:request:deliverCarry')
 AddEventHandler('chem:request:deliverCarry', function(barrelType)
     local src = source
@@ -435,11 +412,9 @@ AddEventHandler('chem:request:deliverCarry', function(barrelType)
 
     Notify(src, 'Delivered barrel successfully.', 'success')
 
-    -- after reward + notify
     tryFinishMission(src)
 end)
 
--- Exchange
 RegisterNetEvent('chem:request:exchange')
 AddEventHandler('chem:request:exchange', function()
     local src = source
@@ -476,7 +451,6 @@ AddEventHandler('chem:request:exchange', function()
     Notify(src, 'Exchanged chemicals for processed materials.', 'success')
 end)
 
--- Mix gunpowder
 RegisterNetEvent('chem:request:mixGunpowder')
 AddEventHandler('chem:request:mixGunpowder', function()
     local src = source
@@ -516,7 +490,6 @@ RegisterNetEvent('chem:mix:complete')
 AddEventHandler('chem:mix:complete', function()
     local src = source
 
-    -- safety check
     if not cooldowns[src] then return end
 
     local amount = Config.LastRewardCount or 3
@@ -527,7 +500,6 @@ AddEventHandler('chem:mix:complete', function()
 end)
 
 
--- Cleanup on disconnect
 AddEventHandler('playerDropped', function()
     local src = source
     if activeMissions[src] then
@@ -537,7 +509,6 @@ AddEventHandler('playerDropped', function()
     end
 end)
 
--- Client events for doors
 RegisterNetEvent('chem:sync:openTruckDoors')
 AddEventHandler('chem:sync:openTruckDoors', function(vehicleNetId)
     local vehicle = NetworkGetEntityFromNetworkId(vehicleNetId)
@@ -556,7 +527,6 @@ AddEventHandler('chem:sync:closeTruckDoors', function(vehicleNetId)
     end
 end)
 
--- Give keys to spawned truck
 local function tryGiveVehicleKeys(src, plate)
     if type(plate) ~= 'string' or plate == '' then return end
     print(('[chem_gunpowder] giving keys %s -> %s'):format(plate, src))
@@ -585,7 +555,6 @@ AddEventHandler('chem:giveKeys', function(plate)
 end)
 
 
--- run normal finish logic
 RegisterCommand("chemtryfinish", function(source)
     print("[CHEM TEST] Running tryFinishMission()")
     tryFinishMission(source)

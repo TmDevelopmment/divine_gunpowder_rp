@@ -4,9 +4,6 @@ RegisterNetEvent('chem:sync:mixingProgress')
 AddEventHandler('chem:sync:mixingProgress', function()
     local ped = PlayerPedId()
 
-    ------------------------------------------------
-    -- MAIN MIXING ANIMATION
-    ------------------------------------------------
     local dict = "amb@world_human_bum_wash@male@low@idle_a"
     RequestAnimDict(dict)
     while not HasAnimDictLoaded(dict) do Wait(0) end
@@ -22,9 +19,6 @@ AddEventHandler('chem:sync:mixingProgress', function()
         false, false, false
     )
 
-    ------------------------------------------------
-    -- 🔥 SMOKE PARTICLE
-    ------------------------------------------------
     local ptfxDict = "core"
     local ptfxName = "exp_grd_bzgas_smoke"
 
@@ -42,9 +36,6 @@ AddEventHandler('chem:sync:mixingProgress', function()
         false, false, false, false
     )
 
-    ------------------------------------------------
-    -- 🔊 SOUND LOOP
-    ------------------------------------------------
     local soundId = GetSoundId()
     PlaySoundFromCoord(
         soundId,
@@ -56,9 +47,6 @@ AddEventHandler('chem:sync:mixingProgress', function()
         false, 0, false
     )
 
-    ------------------------------------------------
-    -- 😷 RANDOM COUGH THREAD
-    ------------------------------------------------
     local mixing = true
     CreateThread(function()
         local coughDict = "timetable@ron@ig_3_cough"
@@ -70,12 +58,10 @@ AddEventHandler('chem:sync:mixingProgress', function()
 
             if not mixing then break end
 
-            -- 40% probability to cough
             if math.random() < 0.40 then
                 TaskPlayAnim(ped, coughDict, "cough", 8.0, -8.0, 2000, 48, 0, false, false, false)
                 Wait(1800)
 
-                -- return to mixing animation
                 TaskPlayAnim(
                     ped,
                     dict,
@@ -90,9 +76,6 @@ AddEventHandler('chem:sync:mixingProgress', function()
         end
     end)
 
-    ------------------------------------------------
-    -- STEP-BASED PROGRESS UI
-    ------------------------------------------------
     local steps = {
         { label = "Combining chemicals...", time = 3000 },
         { label = "Heating mixture...",     time = 4000 },
@@ -114,10 +97,6 @@ AddEventHandler('chem:sync:mixingProgress', function()
         end
     end
 
-
-    ------------------------------------------------
-    -- CLEANUP
-    ------------------------------------------------
     print("[CHEM][DEBUG] Cleaning up mixing")
     mixing = false
     ClearPedTasks(ped)
@@ -139,7 +118,6 @@ AddEventHandler('chem:spawnMissionBarrel', function(coords)
     SpawnMissionBarrel(coords)
 end)
 
--- Fallback progress
 function ShowProgressBar(duration)
     local startTime = GetGameTimer()
     while GetGameTimer() - startTime < duration * 1000 do
@@ -150,7 +128,6 @@ function ShowProgressBar(duration)
     end
 end
 
--- Helpers
 function IsOxLibAvailable()
     return GetResourceState('ox_lib') == 'started'
 end
@@ -185,7 +162,6 @@ function SpawnMissionBarrel(coords)
     FreezeEntityPosition(missionBarrel, true)
     SetEntityInvincible(missionBarrel, true)
 
-    -- 🔹 attach ox_target
     if GetResourceState('ox_target') == 'started' then
         exports.ox_target:addLocalEntity(missionBarrel, {
             {
